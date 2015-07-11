@@ -6,6 +6,8 @@ output:
   html_document:
     keep_md: true
 ---
+
+
 ## Introduction
 
 This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
@@ -22,22 +24,172 @@ The dataset is stored in a comma-separated-value (CSV) file and there are a tota
 
 ## Loading and preprocessing the data
 
+### Load the data.
 
+The commands below are to unzip the file received from master branch and read the CSV file. We just display the dimension of the data frame to check if the operation was OK.
+
+```{r read_data, cache=TRUE}
+unzip("activity.zip")
+pa1_dataset<-read.csv2("activity.csv", sep=",", na.strings=c("NA"))
+dim(pa1_dataset)
+```
+
+### Preprocess the data into a format suitable for the analysis
+
+Because the column *interval* contains values in a format *hhmm*, we decided to create a new column to contain the number of minutes in the day. This is important because for this new column, we have the property that the difference between two intervals is 5.  
+
+```{r preprocessing}
+pa1_dataset$minutes<-(pa1_dataset$interval%/%100)*60+pa1_dataset$interval%%100
+pa1_dataset[c(20,36,50,80,94),]
+```
 
 ## What is mean total number of steps taken per day?
 
+### Calculate the total number of steps taken per day
+
+```{r steps_per_day}
+## -- Create a vector with the dates in the dataset
+pa1_dates <- unique(pa1_dataset$date)
+length(pa1_dates)
+## -- Create a list - each element contains the steps for one day
+pa1_s1d <- split(pa1_dataset$steps,pa1_dataset$date)
+## -- Apply the sum of steps for each element in the list created above. The result is a 
+## -- vector with the sum of the steps per date (ssd)
+pa1_ssd <- sapply(pa1_s1d, sum)
+## -- Create a data frame with the colmnus date and sum of steps per day
+pa1_ssd_df <- data.frame(pa1_dates,pa1_ssd)
+head(pa1_ssd_df,10)
+## -- Plot the data frame to give an idea about the evolution of the total of steps.
+plot(as.numeric(pa1_ssd_df$pa1_dates), as.numeric(pa1_ssd_df$pa1_ssd), type="b", col="dark red")
+```
+
+### Histogram of the total number of steps taken per day
+
+```{r hist}
+hist(pa1_ssd_df$pa1_ssd, main="Number of steps per day", col="light blue")
+```
+
+### calculate and report the mean and median of the total number of steps taken per day
+
+```{r mean_median}
+pa1_mean <- mean(pa1_ssd, na.rm=TRUE)
+pa1_med <- median(pa1_ssd, na.rm=TRUE)
+pa1_mean; pa1_med
+```
+The mean and median of the total number of steps taken per day are `r format(pa1_mean)` and `r format(pa1_med)`, respectively.
 
 
 ## What is the average daily activity pattern?
 
+### Make a time series plot of 5-minutes interval (x-axis) with the averagen number of steps (y-axis)
 
+```{r steps_per_interval}
+## -- Create a vector with the intervals in the dataset
+pa1_intervals <- unique(pa1_dataset$interval)
+length(pa1_intervals)
+## -- Create a list - each element contains the steps for one interval (s1i)
+pa1_s1i <- split(pa1_dataset$steps,pa1_dataset$interval)
+## -- Apply the sum of steps for each element in the list created above. The result is a 
+## -- vector with the average of the steps per interval (asi)
+pa1_asi <- sapply(pa1_s1i, mean, na.rm=TRUE)
+## -- Create a data frame with the colmnus inteval and average of steps per interval
+pa1_asi_df <- data.frame(pa1_intervals, pa1_asi)
+head(pa1_asi_df,10)
+## -- Plot the data frame to give an idea about the evolution of the average of steps.
+plot(as.numeric(pa1_asi_df$pa1_intervals), as.numeric(pa1_asi_df$pa1_asi), type="l", col="dark green")
+```
+
+### Which 5-minute interval, on average across all days in the dataset, contains the maximum number of steps
+
+
+```{r maximum_avg}
+pa1_max <- pa1_asi_df[order(pa1_asi, decreasing=TRUE)[1],]
+pa1_max_int<-as.numeric(pa1_max[1])
+pa1_max_fmt<-paste(format(pa1_max_int%/%100), format(pa1_max_int%%100), sep=":")
+pa1_max
+```
+The maximum number of steps on average occurs at `r pa1_max_fmt`.
 
 ## Imputing missing values
 
+### Calculate and report the number of missing values in the data set
 
+The number of missing values in the data set is the number of rows with NA 
+
+```{r number_of_NA}
+pa1_nna <- length(which(is.na(pa1_dataset$steps)))
+format(pa1_nna)
+```
+
+### Filling in all missing values
+
+We decided ti fill in the missing values with the mean for that 5-minute interval.
+
+### Create a new dataset that is equal to the original dataset but with missng data filled in
+
+```{r filling_missing, cache=TRUE}
+## -- Create a new column to receive the steps in which the missing values will be 
+## -- replaced by the mean for that 5-minute interval.
+pa1_dataset2 <-pa1_dataset
+## -- For each row, if the steps column from the original data set is NA then replace it
+## -- by the mean.
+for (i in 1:nrow(pa1_dataset)) {
+  if (is.na(pa1_dataset$steps[i])){
+    pa1_dataset2$steps[i] <- floor(0.5+pa1_asi_df$pa1_asi[which(pa1_dataset$interval[i]==pa1_asi_df$pa1_intervals)])
+  }
+}
+## -- We show below the original column with NAs, the new column with the averages rounded
+## -- andthe corresponding averages for 5-minute interval.
+pa1_dataset$steps[51:80]
+pa1_dataset2$steps[51:80]
+pa1_asi_df$pa1_asi[51:80]
+## -- We show below that the original column values not NA are kept in the new column
+pa1_dataset$steps[649:661]
+pa1_dataset2$steps[649:661]
+
+```
+
+### Histogram, mean and median of the new dataset
+
+#### Calculate the total number of steps taken per day
+
+```{r steps2_per_day}
+## -- Create a list - each element contains the steps for one day
+pa1_s1d2 <- split(pa1_dataset2$steps, pa1_dataset$date)
+## -- Apply the sum of steps for each element in the list created above. The result is a 
+## -- vector with the sum of the steps per date (ssd)
+pa1_ssd2 <- sapply(pa1_s1d2, sum)
+## -- Create a data frame with the colmnus date and sum of steps per day
+pa1_ssd2_df <- data.frame(pa1_dates,pa1_ssd2)
+head(pa1_ssd2_df,10)
+## -- Plot the data frame to give an idea about the evolution of the total of steps.
+plot(as.numeric(pa1_ssd2_df$pa1_dates), as.numeric(pa1_ssd2_df$pa1_ssd), type="b", col="dark blue")
+```
+
+#### Histogram of the total number of steps taken per day
+
+```{r hist2}
+hist(pa1_ssd2_df$pa1_ssd2, main="Number of steps per day", col="light yellow")
+```
+
+#### calculate and report the mean and median of the total number of steps taken per day
+
+```{r mean_median2}
+pa1_mean2 <- mean(pa1_ssd2, na.rm=TRUE)
+pa1_med2 <- median(pa1_ssd2, na.rm=TRUE)
+pa1_mean2; pa1_med2
+```
+The mean and median of the total number of steps taken per day are `r format(pa1_mean2)` and `r format(pa1_med2)`, respectively.
+
+#### Do the mean and median values differ from the estmates from the firt part of the assignment (with NAs)?
+
+No. The values are very similar. We just substituded the NA values by the median. so the tendency is that these values are almost the same.
+
+#### What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+The impact of imputing the mean for the 5-minute interval is that the sum should increase, since that, the values considered in the sum for NA is zero. So, in terms ofthe sum, we increased the mean for 5-minute interval in `r format(pa1_nna)` cases. The histogram shows that these numbers increased were in the range that include the mean (25 against 35).
 
 ## Are there differences in activity patterns between weekdays and weekends?
-
 
 ```{r final, include=FALSE, warning = FALSE, message=FALSE}
 time<-Sys.time()
