@@ -27,6 +27,7 @@ The commands below are to unzip the file received from master branch and read th
 ```r
 unzip("activity.zip")
 pa1_dataset<-read.csv2("activity.csv", sep=",", na.strings=c("NA"))
+unlink("activity.csv")
 dim(pa1_dataset)
 ```
 
@@ -348,7 +349,59 @@ The impact of imputing the mean for the 5-minute interval is that the sum should
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
+### Create a new factor variable in the dataset indicating weekday or weekend
+
+In the next step, we create a variable *daytype* in *pa1_dataset2* which is a factor of two values: *weeekday* ord *weekend*.
+
+**Note:** we decided to use the function *isWeekday* from the package *timeDate*. The reason is that the function *weekdays()* returns the weekdays in the Portuguese language in my configuration. It could not work in other configurations. 
+
+
+```r
+library(timeDate)
+```
+
+```
+## Warning: package 'timeDate' was built under R version 3.1.3
+```
+
+```r
+pa1_dataset2$daytype=c("weekend","weekday")[as.numeric(isWeekday(as.Date(pa1_dataset$date)))+1]
+pa1_dataset2$daytype[c(1,1+288,1+288*2,1+288*3,1+288*4,1+288*5,1+288*6,1+288*7)]
+```
+
+```
+## [1] "weekday" "weekday" "weekday" "weekday" "weekday" "weekend" "weekend"
+## [8] "weekday"
+```
+
+### Make a panel plot containing  time series plot of 5-minutes interval and average number of steps taken, averaged across weekdays or weekend
+
+
+```r
+## -- In the following steps, we perform actions for weekdays (wd) and weekends (we)
+## -- Create data frames with the rows selected according to *daytype*.
+pa1_dataset2_wd<-pa1_dataset2[pa1_dataset2$daytype=="weekday",]
+pa1_dataset2_we<-pa1_dataset2[pa1_dataset2$daytype=="weekend",]
+## -- Create a list - each element contains the steps for one interval (s1i)
+pa1_s1i_wd<-split(pa1_dataset2_wd$steps,pa1_dataset2_wd$interval)
+pa1_s1i_we<-split(pa1_dataset2_we$steps,pa1_dataset2_we$interval)
+## -- Apply the sum of steps for each element in the list created above. The result is a 
+## -- vector with the average of the steps per interval (asi)
+pa1_asi_wd <- sapply(pa1_s1i_wd, mean, na.rm=TRUE)
+pa1_asi_we <- sapply(pa1_s1i_we, mean, na.rm=TRUE)
+## -- Create a data frame with the colmnus interval and average of steps per interval
+pa1_asi_ww_df <- data.frame(interval=pa1_intervals, mean=pa1_asi_wd, weektype="weekday")
+pa1_asi_ww_df <- rbind(pa1_asi_ww_df, data.frame(interval=pa1_intervals, mean=pa1_asi_we, weektype="weekend"))
+## -- Plot the data frame to give an idea about the evolution of the average of steps.
+library(lattice)
+xyplot(mean~interval | weektype, data=pa1_asi_ww_df, layout=c(1,2), type="l")
+```
+
+![](PA1_template_files/figure-html/wedays_weekends-1.png) 
+
+
+
 
 
 _____________________
-Last update: 2015-07-11 18:17:51
+Last update: 2015-07-12 13:02:13
