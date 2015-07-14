@@ -20,13 +20,14 @@ The variables included in this dataset are:
 
 * interval: Identifier for the 5-minute interval in which measurement was taken
 
-The dataset is stored in a comma-separated-value (CSV) file and there are a total of 1
+The dataset is stored in a comma-separated-value (CSV) file and there are a total of 1,568 observations in this dataset.
 
 ## Loading and preprocessing the data
 
 ### Load the data.
 
-The commands below are to unzip the file received from master branch and read the CSV file. We just display the dimension of the data frame to check if the operation was OK.
+The objective is to load the data into the variable *pa1_dataaset*. Before reading the data, we unzip it. After reading, we delete the file in order to kep the directory clean.
+Note that to run these commands, we assume that the current directory contains the zipped file.  At the end of the chunk, we display the dataset dimension.
 
 ```{r read_data, cache=TRUE}
 unzip("activity.zip")
@@ -37,7 +38,7 @@ dim(pa1_dataset)
 
 ### Preprocess the data into a format suitable for the analysis
 
-Because the column *interval* contains values in a format *hhmm*, we decided to create a new column to contain the number of minutes in the day. This is important because for this new column, we have the property that the difference between two intervals is 5.  
+Because the column *interval* contains values in a format *hhmm*, we decided to create a new column containing the number of minutes in the day. This is important because for this new column, we have the property that the difference between two intervals is 5. We disply some values just to check if the transformation is ok. 
 
 ```{r preprocessing}
 pa1_dataset$minutes<-(pa1_dataset$interval%/%100)*60+pa1_dataset$interval%%100
@@ -48,13 +49,15 @@ pa1_dataset[c(20,36,50,80,94),]
 
 ### Calculate the total number of steps taken per day
 
+The next step is to calculate the total number of steps per day. Note that we are using the NA values in this computation. In order to calculate this total, we split the dataset per day creating a list and apply the function *sum* for each element. Following, we create a data frame in order to group the information of day and total. To have an idea about the result, we display the head and plot this data-frame.  
+
 ```{r steps_per_day}
 ## -- Create a vector with the dates in the dataset
 pa1_dates <- unique(pa1_dataset$date)
 length(pa1_dates)
-## -- Create a list - each element contains the steps for one day
+## -- Split the dataset creating a list - each element contains the steps for one day
 pa1_s1d <- split(pa1_dataset$steps,pa1_dataset$date)
-## -- Apply the sum of steps for each element in the list created above. The result is a 
+## -- Apply the sum  for each element in the list created above. The result is a 
 ## -- vector with the sum of the steps per date (ssd)
 pa1_ssd <- sapply(pa1_s1d, sum)
 ## -- Create a data frame with the colmnus date and sum of steps per day
@@ -66,11 +69,18 @@ plot(as.numeric(pa1_ssd_df$pa1_dates), as.numeric(pa1_ssd_df$pa1_ssd), type="b",
 
 ### Histogram of the total number of steps taken per day
 
+Following, we present a histogram showing the number of steps per day.
+
 ```{r hist}
 hist(pa1_ssd_df$pa1_ssd, main="Number of steps per day", col="light blue")
 ```
 
+The figure above give us an idea that the big majority of the days, the number of steps are between 10000 and 15000. In few days (about 5), this number is too small (between 0 and 5000) and in two or three cases the number is too high, reachin between 20000 and 25000.
+
+
 ### calculate and report the mean and median of the total number of steps taken per day
+
+For the calculation for mean and median, we just applied the functions mean and median to the *pa1_ssd* vector obtained in the prevous step. At the end, we present these values.
 
 ```{r mean_median}
 pa1_mean <- mean(pa1_ssd, na.rm=TRUE)
@@ -82,7 +92,9 @@ The mean and median of the total number of steps taken per day are `r format(pa1
 
 ## What is the average daily activity pattern?
 
-### Make a time series plot of 5-minutes interval (x-axis) with the averagen number of steps (y-axis)
+### Make a time series plot of 5-minutes interval (x-axis) with the average number of steps (y-axis)
+
+Similar to the calculation of the sum in the previous section, we split the dataset per interval creating a list and apply the function *mean* for each element. Following, we create a data frame in order to group the information of inteval and average. To have an idea about the result, we display the head if this data frame. To accomplish to what was asked. we plot this data-frame. 
 
 ```{r steps_per_interval}
 ## -- Create a vector with the intervals in the dataset
@@ -102,6 +114,7 @@ plot(as.numeric(pa1_asi_df$pa1_intervals), as.numeric(pa1_asi_df$pa1_asi), type=
 
 ### Which 5-minute interval, on average across all days in the dataset, contains the maximum number of steps
 
+To obtain the maxium, we ordered the *pal_asi* vector and got the first element from the dataframe. At the end, we displyed the interval and the value corresponding to the maximim of steps.
 
 ```{r maximum_avg}
 pa1_max <- pa1_asi_df[order(pa1_asi, decreasing=TRUE)[1],]
@@ -118,15 +131,17 @@ The maximum number of steps on average occurs at `r pa1_max_fmt`.
 The number of missing values in the data set is the number of rows with NA 
 
 ```{r number_of_NA}
-pa1_nna <- length(which(is.na(pa1_dataset$steps)))
-format(pa1_nna)
+pa1_nna<-length(which(is.na(pa1_dataset$steps)))
+pa1_nna
 ```
 
 ### Filling in all missing values
 
-We decided ti fill in the missing values with the mean for that 5-minute interval.
+We decided to fill in the missing values with the mean for that 5-minute interval.
 
 ### Create a new dataset that is equal to the original dataset but with missng data filled in
+
+Following, the *pa1_dataset2* is created equal to *pa1_datase*, substituting the NA values in the *step* column by the mean of that 5-minute interval. Just in order to keep the stpes as integer, we rounded the mean before assigning (*floor(0.5+meanvalue)*). At the end of the chunk, we presented some values that show the transformations done.
 
 ```{r filling_missing, cache=TRUE}
 ## -- Create a new column to receive the steps in which the missing values will be 
@@ -154,6 +169,8 @@ pa1_dataset2$steps[649:661]
 
 #### Calculate the total number of steps taken per day
 
+The procedure to perform this calculation is similar to the previous executed for *pa1_dataset*, the original dataset. At the end, we also head and plot the resulting data-frame.  
+
 ```{r steps2_per_day}
 ## -- Create a list - each element contains the steps for one day
 pa1_s1d2 <- split(pa1_dataset2$steps, pa1_dataset$date)
@@ -169,9 +186,14 @@ plot(as.numeric(pa1_ssd2_df$pa1_dates), as.numeric(pa1_ssd2_df$pa1_ssd), type="b
 
 #### Histogram of the total number of steps taken per day
 
+Following, we present a histogram showing the number of steps per day, considering that we replaced the NA values by a mean value for that 5-minute. 
+
 ```{r hist2}
 hist(pa1_ssd2_df$pa1_ssd2, main="Number of steps per day", col="light yellow")
 ```
+
+We observed that the number frequency for the range which includes the mean increased. For the other ranges, the frequency descreased.
+
 
 #### calculate and report the mean and median of the total number of steps taken per day
 
@@ -194,19 +216,22 @@ The impact of imputing the mean for the 5-minute interval is that the sum should
 
 ### Create a new factor variable in the dataset indicating weekday or weekend
 
-In the next step, we create a variable *daytype* in *pa1_dataset2* which is a factor of two values: *weeekday* ord *weekend*.
+In the next step, we create a variable *daytype* in *pa1_dataset2* which is a factor of two values: *weeekday* ord *weekend*. We displyed some variables covering the first interval of 8 consucutive days. 
 
 **Note:** we decided to use the function *isWeekday* from the package *timeDate*. The reason is that the function *weekdays()* returns the weekdays in the Portuguese language in my configuration. It could not work in other configurations. 
 
-```{r create_daytype}
+```{r create_daytype, warning=FALSE}
 library(timeDate)
 pa1_dataset2$daytype=c("weekend","weekday")[as.numeric(isWeekday(as.Date(pa1_dataset$date)))+1]
 pa1_dataset2$daytype[c(1,1+288,1+288*2,1+288*3,1+288*4,1+288*5,1+288*6,1+288*7)]
 ```
 
-### Make a panel plot containing  time series plot of 5-minutes interval and average number of steps taken, averaged across weekdays or weekend
+### Make a panel plot containing  time series plot of 5-minutes interval and average number of steps taken, averaged across weekdays or weekend.
 
-```{r wedays_weekends}
+In order to plot the timeseries for weekend and weekdays, we created one dataframe for each day type. We split these data frames into lists correspoding to the day type. We applied the *mean* function for each list and created a new data frame with the mean for the both day type. finaly we used the *xyplot* from the *lattice* package to draw the figures as requested in README file.
+
+
+```{r wedays_weekends, warning=FALSE}
 ## -- In the following steps, we perform actions for weekdays (wd) and weekends (we)
 ## -- Create data frames with the rows selected according to *daytype*.
 pa1_dataset2_wd<-pa1_dataset2[pa1_dataset2$daytype=="weekday",]
@@ -225,7 +250,12 @@ pa1_asi_ww_df <- rbind(pa1_asi_ww_df, data.frame(interval=pa1_intervals, mean=pa
 library(lattice)
 xyplot(mean~interval | weektype, data=pa1_asi_ww_df, layout=c(1,2), type="l")
 ```
+The graphic shows that people practices more workout on weeekends - the area in the weekend grapgh is bigger than the area in the weekday graph. This can be confirmed applyng the *sum* function for these two cases, as shown in the chunk below.
 
+```{r areas}
+sum(pa1_asi_we);sum(pa1_asi_wd)
+```
+Also, observing the graphic, we can conclude that the workout is distributed along the day on weekends, while during the weekdays, the peak is betwwen 8:30AM and 10:00AM.
 
 
 ```{r final, include=FALSE, warning = FALSE, message=FALSE}
